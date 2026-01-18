@@ -41,6 +41,19 @@ local function getFirstFreeMacro(DP)
     return last + 1
 end
 
+local function getFirstFreeMacroFrom(DP, startNum)
+    local macrosPool = ShowData().DataPools[DP].Macros
+    local i = tonumber(startNum) or 1
+    if i < 1 then i = 1 end
+    while i <= 10000 do
+        if macrosPool[i] == nil then
+            return i
+        end
+        i = i + 1
+    end
+    return getFirstFreeMacro(DP)
+end
+
 local function getFirstFreeSequence(DP)
     local seqPool = ShowData().DataPools[DP].Sequences
     local last = 0
@@ -486,7 +499,7 @@ local function createColorMacros(presets, firstMacro, firstColorAppearance, lowf
 end
 
 -- ------------------------------------------------------------
--- FORM SHAPING 
+-- FORM SHAPING (templates)
 -- ------------------------------------------------------------
 local function applySquareToColorFXPreset(presetNum)
     local attrCandidates = {
@@ -592,9 +605,10 @@ local function createFormTemplatesFromFixed(fixedPresetNum, DP)
     c('Copy Preset 4.' .. fixedPresetNum .. ' At 4.' .. templates.pwm .. ' /o /nu')
     pPool[templates.pwm]:Set('name', 'COLORFX_FORM_SQUARE')
 
-    applySnapInToColorFXPreset(templates.snapin)
-    applySnapOutToColorFXPreset(templates.snapout)
-    applySquareToColorFXPreset(templates.pwm)
+    -- On applique les formes custom sur les templates
+    applySnapInToColorFXPreset(templates.snapin)     -- Snap In
+    applySnapOutToColorFXPreset(templates.snapout)   -- Snap Out
+    applySquareToColorFXPreset(templates.pwm)        -- Square
 
     return templates
 end
@@ -754,7 +768,6 @@ end
 
 -- ------------------------------------------------------------
 -- Create CONTROL macros
---   ✅ Form buttons = Copy template -> fixed preset (/o)
 -- ------------------------------------------------------------
 local function createControlMacros(matricksName, sequenceNum, controlAppearFirst, formTemplates, fixedColorFXPresetNum, firstMacro, DP)
     local macro_pool  = ShowData().DataPools[DP].Macros
@@ -858,7 +871,7 @@ local function createControlMacros(matricksName, sequenceNum, controlAppearFirst
     -- Forms (4)
     makeForm("sine",    formTemplates.sine,    AP_SINE_A,    AP_SINE_I)
     makeForm("snapin",  formTemplates.snapin,  AP_SNAPIN_A,  AP_SNAPIN_I)
-    makeForm("snapout", formTemplates.snapout, AP_SNAPOUT_A, AP_SNAPOUT_I) -- ✅ Snap Out
+    makeForm("snapout", formTemplates.snapout, AP_SNAPOUT_A, AP_SNAPOUT_I)
     makeForm("pwm",     formTemplates.pwm,     AP_PWM_A,     AP_PWM_I)
 
     -- Order / Shuffle
@@ -1114,7 +1127,6 @@ local function populateLayout(layoutNum,
     local xPhaseLabelX = 0
     local xGroupsLabelX = 0
 
-    -- ROW 0 : ON/OFF + MAtricks
     local topY = startY + gapY + vSpaceTop
 
     c('Assign Sequence ' .. sequenceNum .. ' At Layout ' .. layoutNum .. ' /nu')
@@ -1127,7 +1139,6 @@ local function populateLayout(layoutNum,
     elems = layout_pool[layoutNum]:Children()
     applyLayoutProps(elems[#elems], formsX + formsStep, topY, size, size)
 
-    -- LINE 1 : FORMS + Phase + Groups
     local cx = formsX
     local cy = startY
 
@@ -1162,7 +1173,6 @@ local function populateLayout(layoutNum,
         cx = cx + gapX
     end
 
-    -- LINE 2 : shuffle + direction + Blocks + Fade
     cx = formsX
     cy = startY - gapY
 
@@ -1204,7 +1214,6 @@ local function populateLayout(layoutNum,
         cx = cx + gapX
     end
 
-    -- GROUP macros : horizontal sur 2 lignes max
     local gx = formsX
     local gyTop = (startY - gapY * 2) - vSpaceAfterRow2
     local gyBottom = gyTop - gapY
@@ -1242,7 +1251,6 @@ local function populateLayout(layoutNum,
         gi = gi + 1
     end
 
-    -- Color macros (espacement réduit)
     local colorStartX = formsX
     local yColorTop = gyBottom - gapY
     local yColorBottom = yColorTop - gapY
@@ -1327,20 +1335,22 @@ function Main()
 
     local formTemplates = createFormTemplatesFromFixed(colorFXPresetNum, DP)
 
-    local firstMacroAuto = getFirstFreeMacro(DP)
-    local groupMacroFirst, groupMacroLast, nextMacro =
-        createGroupMacros(groups, sequenceNum, firstMacroAuto, controlApFirst, DP)
-
-    local controlMacroFirst, controlMacroLast =
-        createControlMacros(matricksName, sequenceNum, controlApFirst, formTemplates, colorFXPresetNum, nextMacro, DP)
-
     local colorMacroFirst = getMacroStartNumber()
     if not colorMacroFirst then
         e("Annulation - Macros couleurs non créées")
         return
     end
+
     local colorMacroFirstCreated, colorMacroLast =
         createColorMacros(presets, colorMacroFirst, firstColorAp, lowfxPresetNum, highfxPresetNum, DP)
+
+    local startAfterColors = getFirstFreeMacroFrom(DP, colorMacroLast + 1)
+
+    local groupMacroFirst, groupMacroLast, nextMacro =
+        createGroupMacros(groups, sequenceNum, startAfterColors, controlApFirst, DP)
+
+    local controlMacroFirst, controlMacroLast =
+        createControlMacros(matricksName, sequenceNum, controlApFirst, formTemplates, colorFXPresetNum, nextMacro, DP)
 
     populateLayout(
         layoutNum,
@@ -1353,7 +1363,7 @@ function Main()
 
     MessageBox({
         title = pluginName,
-        message = "OK.\n\n- Forms via templates (Copy preset -> fixed /o)\n- Square + SnapIn + SnapOut appliqués\n",
+        message = "OK.\n\n- Macros couleurs créées EN PREMIER\n- Toutes les autres macros créées APRÈS (groups + control)\n",
         commands = {{value=1,name="OK"}}
     })
 end

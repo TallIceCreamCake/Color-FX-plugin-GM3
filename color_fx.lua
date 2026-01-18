@@ -1,5 +1,3 @@
--- Color FX Builder Plugin for grandMA3
-
 local pluginName = "Color FX Builder"
 
 local c  = Cmd
@@ -7,7 +5,7 @@ local ti = TextInput
 local e  = Echo
 
 -- ------------------------------------------------------------
--- Utils
+-- UTILS
 -- ------------------------------------------------------------
 local function trim(s)
     if not s then return s end
@@ -87,8 +85,21 @@ local function getFirstFreePoolNum(amount, pool)
     return (i - amount)
 end
 
+local function askConfirm(message)
+    local r = MessageBox({
+        title = pluginName,
+        message = message,
+        commands = {
+            { value = 1, name = "RUN" },
+            { value = 0, name = "CANCEL" },
+        }
+    })
+    if type(r) == "table" then r = r.result end
+    return (r == 1)
+end
+
 -- ------------------------------------------------------------
--- Group input
+-- INPUT
 -- ------------------------------------------------------------
 local function parseGroupInput(input, groupsPool)
     local result = {}
@@ -132,19 +143,19 @@ local function getGroups(DP)
     local firstPass = true
 
     while true do
-        local msg = "Entrez les groupes (ex: 1 thru 5, 8, 10)\nEntrez '" .. DONE .. "' pour continuer"
+        local msg = "Enter groups (e.g. 1 thru 5, 8, 10)\nEnter '" .. DONE .. "' to continue"
         if firstPass then
-            msg = msg .. "\n\nLe champ ne peut pas être vide au premier passage"
+            msg = msg .. "\n\nThe field cannot be empty on the first pass"
         end
         local input = ti(msg, DONE)
         if input == nil then return nil end
         input = trim(input)
 
         if firstPass and input == "" then
-            Confirm("Erreur", "Vous devez sélectionner au moins un groupe !")
+            Confirm("Error", "You must select at least one group!")
         elseif input:upper() == DONE then
             if #allGroups == 0 then
-                Confirm("Erreur", "Aucun groupe sélectionné !")
+                Confirm("Error", "No group selected!")
             else
                 break
             end
@@ -160,7 +171,7 @@ local function getGroups(DP)
                 end
                 firstPass = false
             else
-                Confirm("Erreur", "Format invalide ou groupes vides.\nUtilisez: 1 thru 5, 8, 10")
+                Confirm("Error", "Invalid format or empty groups.\nUse: 1 thru 5, 8, 10")
             end
         end
     end
@@ -169,34 +180,6 @@ local function getGroups(DP)
     return allGroups
 end
 
--- ------------------------------------------------------------
--- Layout number
--- ------------------------------------------------------------
-local function getLayoutNumber(DP)
-    local layoutsPool = ShowData().DataPools[DP].Layouts
-    local userInput = ti("Entrez le numéro du Layout à créer:", "1")
-    if not userInput then return nil end
-    local layoutNum = tonumber(userInput:match("%d+"))
-    if not layoutNum then
-        Confirm("Erreur", "Numéro de layout invalide")
-        return nil
-    end
-    if layoutsPool[layoutNum] then
-        Confirm("Erreur", "Le Layout " .. layoutNum .. " existe déjà !\nVeuillez choisir un autre numéro.")
-        return nil
-    end
-    return layoutNum
-end
-
-local function createLayout(layoutNum)
-    c('Store Layout ' .. layoutNum .. ' "COLOR FX" /nu')
-    c('Select Layout ' .. layoutNum .. ' /nu')
-    e("Layout " .. layoutNum .. " 'COLOR FX' créé")
-end
-
--- ------------------------------------------------------------
--- Presets input
--- ------------------------------------------------------------
 local function parsePresetInput(input, presetsPool)
     local result = {}
     if not input or input == "" then return nil end
@@ -239,9 +222,9 @@ local function getColorPresets(DP)
     local firstPass = true
 
     while true do
-        local msg = "Entrez les presets de couleur (ex: 1 thru 5, 8, 10)\nEntrez '" .. DONE .. "' pour continuer"
+        local msg = "Enter color presets (e.g. 1 thru 5, 8, 10)\nEnter '" .. DONE .. "' to continue"
         if firstPass then
-            msg = msg .. "\n\nLe champ ne peut pas être vide au premier passage"
+            msg = msg .. "\n\nThe field cannot be empty on the first pass"
         end
 
         local input = ti(msg, DONE)
@@ -249,10 +232,10 @@ local function getColorPresets(DP)
         input = trim(input)
 
         if firstPass and input == "" then
-            Confirm("Erreur", "Vous devez sélectionner au moins un preset de couleur !")
+            Confirm("Error", "You must select at least one color preset!")
         elseif input:upper() == DONE then
             if #allPresets == 0 then
-                Confirm("Erreur", "Aucun preset sélectionné !")
+                Confirm("Error", "No preset selected!")
             else
                 break
             end
@@ -268,7 +251,7 @@ local function getColorPresets(DP)
                 end
                 firstPass = false
             else
-                Confirm("Erreur", "Format invalide ou presets inexistants.\nUtilisez: 1 thru 5, 8, 10")
+                Confirm("Error", "Invalid format or missing presets.\nUse: 1 thru 5, 8, 10")
             end
         end
     end
@@ -277,19 +260,45 @@ local function getColorPresets(DP)
     return allPresets
 end
 
+local function getLayoutNumber(DP)
+    local layoutsPool = ShowData().DataPools[DP].Layouts
+    local userInput = ti("Enter the Layout number to create:", "1")
+    if not userInput then return nil end
+    local layoutNum = tonumber(userInput:match("%d+"))
+    if not layoutNum then
+        Confirm("Error", "Invalid layout number")
+        return nil
+    end
+    if layoutsPool[layoutNum] then
+        Confirm("Error", "Layout " .. layoutNum .. " already exists!\nPlease choose another number.")
+        return nil
+    end
+    return layoutNum
+end
+
+local function getMacroStartNumber()
+    local userInput = ti("Enter the first COLOR Macro number to create (LOW/HIGH):", "1")
+    if not userInput then return nil end
+    local num = tonumber(userInput:match("%d+"))
+    if not num then
+        Confirm("Error", "Invalid macro number")
+        return nil
+    end
+    return num
+end
+
 -- ------------------------------------------------------------
--- Read preset color (RGB) from preset data
+-- COLOR / APPEARANCES
 -- ------------------------------------------------------------
 local function getPresetColor(presetNum, DP)
     local presetsPool = ShowData().DataPools[DP].PresetPools[4]
     local preset = presetsPool[presetNum]
     if not preset then
-        e("ERREUR: Preset " .. presetNum .. " non trouvé")
+        e("ERROR: Preset " .. presetNum .. " not found")
         return 255, 255, 255
     end
 
     if preset.storeddata ~= 'Universal' then
-        e("ATTENTION: Preset " .. presetNum .. " n'est pas Universal - Conversion...")
         c('universal 1 at preset 4.' .. presetNum .. ' /nu')
         c('store preset 4.' .. presetNum .. ' /m /nu')
         c('clearall /nu')
@@ -297,7 +306,7 @@ local function getPresetColor(presetNum, DP)
 
     local presetData = GetPresetData(preset)
     if not presetData or not presetData[3] or not presetData[4] or not presetData[5] then
-        e("ERREUR: Données RGB manquantes dans le preset " .. presetNum)
+        e("ERROR: Missing RGB data in preset " .. presetNum)
         return 255, 255, 255
     end
 
@@ -307,9 +316,6 @@ local function getPresetColor(presetNum, DP)
     return r, g, b
 end
 
--- ------------------------------------------------------------
--- Create appearances for each chosen color preset
--- ------------------------------------------------------------
 local function createColorAppearances(presets, DP)
     local presetsPool = ShowData().DataPools[DP].PresetPools[4]
     local appearancesPool = ShowData().Appearances
@@ -335,9 +341,6 @@ local function createColorAppearances(presets, DP)
     return firstAppearance, current - 1
 end
 
--- ------------------------------------------------------------
--- Create LOWFX / HIGHFX presets at end of pool 4
--- ------------------------------------------------------------
 local function createLowHighPresets(presets, DP)
     local presetsPool = ShowData().DataPools[DP].PresetPools[4]
     if #presets < 2 then return nil, nil end
@@ -359,9 +362,6 @@ local function createLowHighPresets(presets, DP)
     return lowNum, highNum
 end
 
--- ------------------------------------------------------------
--- Create the SIN FX preset with steps (LOW/HIGH)
--- ------------------------------------------------------------
 local function createColorFXPreset(groups, lowfxPresetNum, highfxPresetNum, DP)
     local colorFXPresetNum = highfxPresetNum + 2
 
@@ -385,7 +385,7 @@ local function createColorFXPreset(groups, lowfxPresetNum, highfxPresetNum, DP)
 end
 
 -- ------------------------------------------------------------
---  Create Sequence
+-- SEQUENCE / MATRICKS
 -- ------------------------------------------------------------
 local function createSequence(groups, colorFXPresetNum, DP)
     local seqNum = getFirstFreeSequence(DP)
@@ -405,9 +405,22 @@ local function createSequence(groups, colorFXPresetNum, DP)
     return seqNum
 end
 
--- ------------------------------------------------------------
---  ON/OFF SWITCH
--- ------------------------------------------------------------
+local function createMatricks(sequenceNum, DP)
+    local mPool = ShowData().DataPools[DP].MAtricks
+    local mNum = getFirstFreeMatricks(DP)
+
+    c('Store MAtricks ' .. mNum .. ' "COLOR FX" /nu')
+    c('Assign MAtricks ' .. mNum .. ' At Sequence ' .. sequenceNum .. ' Cue 1 Part 0.* /nu')
+
+    local mName = (mPool[mNum] and mPool[mNum].name) or "COLOR FX"
+    return mNum, mName
+end
+
+local function createLayout(layoutNum)
+    c('Store Layout ' .. layoutNum .. ' "COLOR FX" /nu')
+    c('Select Layout ' .. layoutNum .. ' /nu')
+end
+
 local function configureSequenceAsSwitch(sequenceNum, controlApFirst, DP)
     local seqPool = ShowData().DataPools[DP].Sequences
     local appearances = ShowData().Appearances
@@ -424,82 +437,7 @@ local function configureSequenceAsSwitch(sequenceNum, controlApFirst, DP)
 end
 
 -- ------------------------------------------------------------
--- Create MAtricks
--- ------------------------------------------------------------
-local function createMatricks(sequenceNum, DP)
-    local mPool = ShowData().DataPools[DP].MAtricks
-    local mNum = getFirstFreeMatricks(DP)
-
-    c('Store MAtricks ' .. mNum .. ' "COLOR FX" /nu')
-    c('Assign MAtricks ' .. mNum .. ' At Sequence ' .. sequenceNum .. ' Cue 1 Part 0.* /nu')
-
-    local mName = (mPool[mNum] and mPool[mNum].name) or "COLOR FX"
-    return mNum, mName
-end
-
--- ------------------------------------------------------------
--- Macro start number
--- ------------------------------------------------------------
-local function getMacroStartNumber()
-    local userInput = ti("Entrez le numéro de la première Macro COULEUR (LOW/HIGH) à créer:", "1")
-    if not userInput then return nil end
-    local num = tonumber(userInput:match("%d+"))
-    if not num then
-        Confirm("Erreur", "Numéro de macro invalide")
-        return nil
-    end
-    return num
-end
-
--- ------------------------------------------------------------
--- Create color macros LOW/HIGH
--- ------------------------------------------------------------
-local function createColorMacros(presets, firstMacro, firstColorAppearance, lowfxPresetNum, highfxPresetNum, DP)
-    local macrosPool = ShowData().DataPools[DP].Macros
-    local presetsPool = ShowData().DataPools[DP].PresetPools[4]
-    local appearancesPool = ShowData().Appearances
-
-    local current = firstMacro
-
-    for i, presetNum in ipairs(presets) do
-        local preset = presetsPool[presetNum]
-        local presetName = preset and (preset.name or ("Preset " .. presetNum)) or ("Preset " .. presetNum)
-
-        c('Store Macro ' .. current .. ' /o /nu')
-        local macroName = presetName .. "_lowfx"
-        macrosPool[current]:Set('name', macroName)
-        macrosPool[current]:Set('appearance', appearancesPool[firstColorAppearance + (i - 1)].name)
-
-        c('Store Macro ' .. current .. '.1 /o /nu')
-        macrosPool[current][1]:Set('command',
-            'Copy Preset 4.' .. presetNum .. ' At 4.' .. lowfxPresetNum .. ' /o /nu; Label Preset 4.' .. lowfxPresetNum .. ' "LOWFX"'
-        )
-
-        current = current + 1
-    end
-
-    for i, presetNum in ipairs(presets) do
-        local preset = presetsPool[presetNum]
-        local presetName = preset and (preset.name or ("Preset " .. presetNum)) or ("Preset " .. presetNum)
-
-        c('Store Macro ' .. current .. ' /o /nu')
-        local macroName = presetName .. "_highfx"
-        macrosPool[current]:Set('name', macroName)
-        macrosPool[current]:Set('appearance', appearancesPool[firstColorAppearance + (i - 1)].name)
-
-        c('Store Macro ' .. current .. '.1 /o /nu')
-        macrosPool[current][1]:Set('command',
-            'Copy Preset 4.' .. presetNum .. ' At 4.' .. highfxPresetNum .. ' /o /nu; Label Preset 4.' .. highfxPresetNum .. ' "HIGHFX"'
-        )
-
-        current = current + 1
-    end
-
-    return firstMacro, current - 1
-end
-
--- ------------------------------------------------------------
--- FORM SHAPING (templates)
+-- FORMS (TEMPLATES)
 -- ------------------------------------------------------------
 local function applySquareToColorFXPreset(presetNum)
     local attrCandidates = {
@@ -508,7 +446,6 @@ local function applySquareToColorFXPreset(presetNum)
     }
 
     c('Edit Preset 4.' .. presetNum .. ' /nu')
-
     for step = 1, 2 do
         c('Step ' .. step .. ' /nu')
         for _, a in ipairs(attrCandidates) do
@@ -518,7 +455,6 @@ local function applySquareToColorFXPreset(presetNum)
             c('Attribute "' .. a .. '" At Deceleration 0 /nu')
         end
     end
-
     c('Store Preset 4.' .. presetNum .. ' /o /nu')
     c('ClearAll /nu')
 end
@@ -579,9 +515,6 @@ local function applySnapOutToColorFXPreset(presetNum)
     c('ClearAll /nu')
 end
 
--- ------------------------------------------------------------
--- Create 4 FORM TEMPLATE presets (Pool 4) from the FIXED preset
--- ------------------------------------------------------------
 local function createFormTemplatesFromFixed(fixedPresetNum, DP)
     local pPool = ShowData().DataPools[DP].PresetPools[4]
     local firstTarget = getFirstFreePoolNum(4, pPool)
@@ -605,16 +538,15 @@ local function createFormTemplatesFromFixed(fixedPresetNum, DP)
     c('Copy Preset 4.' .. fixedPresetNum .. ' At 4.' .. templates.pwm .. ' /o /nu')
     pPool[templates.pwm]:Set('name', 'COLORFX_FORM_SQUARE')
 
-    -- On applique les formes custom sur les templates
-    applySnapInToColorFXPreset(templates.snapin)     -- Snap In
-    applySnapOutToColorFXPreset(templates.snapout)   -- Snap Out
-    applySquareToColorFXPreset(templates.pwm)        -- Square
+    applySnapInToColorFXPreset(templates.snapin)
+    applySnapOutToColorFXPreset(templates.snapout)
+    applySquareToColorFXPreset(templates.pwm)
 
     return templates
 end
 
 -- ------------------------------------------------------------
--- CONTROL appearances
+-- CONTROL APPEARANCES
 -- ------------------------------------------------------------
 local function createControlAppearances(DP)
     local appearances = ShowData().Appearances
@@ -712,7 +644,54 @@ local function createControlAppearances(DP)
 end
 
 -- ------------------------------------------------------------
--- Create GROUP macros
+-- MACROS (COLOR)
+-- ------------------------------------------------------------
+local function createColorMacros(presets, firstMacro, firstColorAppearance, lowfxPresetNum, highfxPresetNum, DP)
+    local macrosPool = ShowData().DataPools[DP].Macros
+    local presetsPool = ShowData().DataPools[DP].PresetPools[4]
+    local appearancesPool = ShowData().Appearances
+
+    local current = firstMacro
+
+    for i, presetNum in ipairs(presets) do
+        local preset = presetsPool[presetNum]
+        local presetName = preset and (preset.name or ("Preset " .. presetNum)) or ("Preset " .. presetNum)
+
+        c('Store Macro ' .. current .. ' /o /nu')
+        local macroName = presetName .. "_lowfx"
+        macrosPool[current]:Set('name', macroName)
+        macrosPool[current]:Set('appearance', appearancesPool[firstColorAppearance + (i - 1)].name)
+
+        c('Store Macro ' .. current .. '.1 /o /nu')
+        macrosPool[current][1]:Set('command',
+            'Copy Preset 4.' .. presetNum .. ' At 4.' .. lowfxPresetNum .. ' /o /nu; Label Preset 4.' .. lowfxPresetNum .. ' "LOWFX"'
+        )
+
+        current = current + 1
+    end
+
+    for i, presetNum in ipairs(presets) do
+        local preset = presetsPool[presetNum]
+        local presetName = preset and (preset.name or ("Preset " .. presetNum)) or ("Preset " .. presetNum)
+
+        c('Store Macro ' .. current .. ' /o /nu')
+        local macroName = presetName .. "_highfx"
+        macrosPool[current]:Set('name', macroName)
+        macrosPool[current]:Set('appearance', appearancesPool[firstColorAppearance + (i - 1)].name)
+
+        c('Store Macro ' .. current .. '.1 /o /nu')
+        macrosPool[current][1]:Set('command',
+            'Copy Preset 4.' .. presetNum .. ' At 4.' .. highfxPresetNum .. ' /o /nu; Label Preset 4.' .. highfxPresetNum .. ' "HIGHFX"'
+        )
+
+        current = current + 1
+    end
+
+    return firstMacro, current - 1
+end
+
+-- ------------------------------------------------------------
+-- MACROS (GROUP)
 -- ------------------------------------------------------------
 local function createGroupMacros(groups, sequenceNum, firstMacro, controlApFirst, DP)
     local macro_pool  = ShowData().DataPools[DP].Macros
@@ -767,7 +746,7 @@ end
 end
 
 -- ------------------------------------------------------------
--- Create CONTROL macros
+-- MACROS (CONTROL)
 -- ------------------------------------------------------------
 local function createControlMacros(matricksName, sequenceNum, controlAppearFirst, formTemplates, fixedColorFXPresetNum, firstMacro, DP)
     local macro_pool  = ShowData().DataPools[DP].Macros
@@ -868,13 +847,11 @@ local function createControlMacros(matricksName, sequenceNum, controlAppearFirst
         m = m + 1
     end
 
-    -- Forms (4)
     makeForm("sine",    formTemplates.sine,    AP_SINE_A,    AP_SINE_I)
     makeForm("snapin",  formTemplates.snapin,  AP_SNAPIN_A,  AP_SNAPIN_I)
     makeForm("snapout", formTemplates.snapout, AP_SNAPOUT_A, AP_SNAPOUT_I)
     makeForm("pwm",     formTemplates.pwm,     AP_PWM_A,     AP_PWM_I)
 
-    -- Order / Shuffle
     storeMacro(m, "COLOR FX - in_order", ap(AP_INORDER_I))
     storeLines(m, 1, 3)
     setLine(m, 1,
@@ -898,7 +875,6 @@ local function createControlMacros(matricksName, sequenceNum, controlAppearFirst
     setLine(m, 3, '')
     m = m + 1
 
-    -- Direction
     storeMacro(m, "COLOR FX - mirrored", ap(AP_MIR_I))
     storeLines(m, 1, 3)
     setLine(m, 1, 'Set MAtricks "' .. matricksName .. '" "xwings" 2; Set MAtricks "' .. matricksName .. '" "phasertransform" "Mirror"')
@@ -919,7 +895,6 @@ local function createControlMacros(matricksName, sequenceNum, controlAppearFirst
     setLine(m, 3, '')
     m = m + 1
 
-    -- xphase_invert (lua, 1 ligne flatten)
     storeMacro(m, "COLOR FX - xphase_invert", ap(AP_PINV_I))
     c('Store Macro ' .. m .. '.1 /o /nu')
 
@@ -952,7 +927,6 @@ end
     macro_pool[m][1]:Set('command', luaInvert)
     m = m + 1
 
-    -- Phase buttons
     local resetPhase =
         'Assign Appearance "' .. ap(AP_P0_I)   .. '" At Macro "COLOR FX - xphase_0"; ' ..
         'Assign Appearance "' .. ap(AP_P90_I)  .. '" At Macro "COLOR FX - xphase_90"; ' ..
@@ -973,7 +947,6 @@ end
     makePhase(180, "xphase_180", AP_P180_A, AP_P180_I)
     makePhase(360, "xphase_360", AP_P360_A, AP_P360_I)
 
-    -- xgroup
     local resetXGroup =
         'Assign Appearance "' .. ap(AP_XG0_I)   .. '" At Macro "COLOR FX - xgroup_0"; ' ..
         'Assign Appearance "' .. ap(AP_XG2_I)   .. '" At Macro "COLOR FX - xgroup_2"; ' ..
@@ -996,7 +969,6 @@ end
     makeXGroup(4,    "xgroup_4",      AP_XG4_A,  AP_XG4_I)
     makeXGroup("()", "xgroup_input",  AP_XGIN_A, AP_XGIN_I)
 
-    -- xblock
     local resetXBlock =
         'Assign Appearance "' .. ap(AP_XB0_I)   .. '" At Macro "COLOR FX - xblock_0"; ' ..
         'Assign Appearance "' .. ap(AP_XB2_I)   .. '" At Macro "COLOR FX - xblock_2"; ' ..
@@ -1019,7 +991,6 @@ end
     makeXBlock(4,    "xblock_4",      AP_XB4_A,  AP_XB4_I)
     makeXBlock("()", "xblock_input",  AP_XBIN_A, AP_XBIN_I)
 
-    -- xfade
     local resetXFade =
         'Assign Appearance "' .. ap(AP_XF0_I)   .. '" At Macro "COLOR FX - xfade_0"; ' ..
         'Assign Appearance "' .. ap(AP_XF1_I)   .. '" At Macro "COLOR FX - xfade_1"; ' ..
@@ -1058,7 +1029,7 @@ end
 end
 
 -- ------------------------------------------------------------
--- Layout helpers
+-- LAYOUT HELPERS
 -- ------------------------------------------------------------
 local function applyLayoutProps(layoutElement, x, y, w, h, customText, customSize)
     if not layoutElement then return end
@@ -1077,7 +1048,7 @@ local function applyLayoutProps(layoutElement, x, y, w, h, customText, customSiz
 end
 
 -- ------------------------------------------------------------
--- Populate Layout
+-- POPULATE LAYOUT
 -- ------------------------------------------------------------
 local function populateLayout(layoutNum,
     sequenceNum, matricksNum,
@@ -1295,33 +1266,55 @@ end
 -- MAIN
 -- ------------------------------------------------------------
 function Main()
-    e("=== Color FX Builder - Démarrage ===")
+    e("=== Color FX Builder - Input ===")
     local DP = tonumber(DataPool().no)
 
     local groups = getGroups(DP)
     if not groups or #groups == 0 then
-        e("Aucun groupe sélectionné. Annulation.")
+        e("No groups selected. Cancelled.")
         return
     end
 
     local presets = getColorPresets(DP)
     if not presets or #presets == 0 then
-        e("Aucun preset sélectionné. Annulation.")
+        e("No presets selected. Cancelled.")
         return
     end
 
     local layoutNum = getLayoutNumber(DP)
     if not layoutNum then
-        e("Annulation - Layout non créé")
+        e("Cancelled - Layout not created.")
         return
     end
+
+    local colorMacroFirst = getMacroStartNumber()
+    if not colorMacroFirst then
+        e("Cancelled - Color macros not created.")
+        return
+    end
+
+    local summary = "The plugin is ready to apply the following changes:\n\n"
+    summary = summary .. "- DataPool: " .. tostring(DP) .. "\n"
+    summary = summary .. "- New Layout: " .. tostring(layoutNum) .. " (\"COLOR FX\")\n"
+    summary = summary .. "- Groups selected: " .. tostring(#groups) .. "\n"
+    summary = summary .. "- Color presets selected: " .. tostring(#presets) .. "\n"
+    summary = summary .. "- Color macros start number (LOW/HIGH): " .. tostring(colorMacroFirst) .. "\n\n"
+    summary = summary .. "Do you want to run now?"
+
+    if not askConfirm(summary) then
+        e("Cancelled.")
+        return
+    end
+
+    e("=== Color FX Builder - Build ===")
+
     createLayout(layoutNum)
 
-    local firstColorAp, lastColorAp = createColorAppearances(presets, DP)
+    local firstColorAp = createColorAppearances(presets, DP)
 
     local lowfxPresetNum, highfxPresetNum = createLowHighPresets(presets, DP)
     if not lowfxPresetNum or not highfxPresetNum then
-        Confirm("Erreur", "Il faut au moins 2 presets pour créer LOWFX/HIGHFX")
+        Confirm("Error", "You need at least 2 presets to create LOWFX/HIGHFX")
         return
     end
 
@@ -1330,16 +1323,10 @@ function Main()
     local sequenceNum = createSequence(groups, colorFXPresetNum, DP)
     local matricksNum, matricksName = createMatricks(sequenceNum, DP)
 
-    local controlApFirst, controlApLast = createControlAppearances(DP)
+    local controlApFirst = createControlAppearances(DP)
     configureSequenceAsSwitch(sequenceNum, controlApFirst, DP)
 
     local formTemplates = createFormTemplatesFromFixed(colorFXPresetNum, DP)
-
-    local colorMacroFirst = getMacroStartNumber()
-    if not colorMacroFirst then
-        e("Annulation - Macros couleurs non créées")
-        return
-    end
 
     local colorMacroFirstCreated, colorMacroLast =
         createColorMacros(presets, colorMacroFirst, firstColorAp, lowfxPresetNum, highfxPresetNum, DP)
@@ -1363,7 +1350,15 @@ function Main()
 
     MessageBox({
         title = pluginName,
-        message = "OK.\n\n- Macros couleurs créées EN PREMIER\n- Toutes les autres macros créées APRÈS (groups + control)\n",
+        message =
+            "Done!\n\n" ..
+            "Created:\n" ..
+            "- Layout " .. tostring(layoutNum) .. " (COLOR FX)\n" ..
+            "- Sequence " .. tostring(sequenceNum) .. " (COLOR FX)\n" ..
+            "- MAtricks " .. tostring(matricksNum) .. " (COLOR FX)\n" ..
+            "- Presets: LOWFX / HIGHFX / Fixed Color FX + 4 Form templates\n" ..
+            "- Macros: Color (LOW/HIGH) + Groups + Controls\n\n" ..
+            "You can now use the layout to control the Color FX system.",
         commands = {{value=1,name="OK"}}
     })
 end

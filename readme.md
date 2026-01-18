@@ -25,12 +25,3 @@ Prerequisites: have color presets, as with a color picker
 5. Enter the number of the first macro
 
 There you go!
-
-## Bugs 
-<em>Fr : </em>
-
-- Le plugin crée étape par étape plutôt que tout à la fin
-
-<em>En : </em>
-
-- The plugin creates step by step rather than everything at the end

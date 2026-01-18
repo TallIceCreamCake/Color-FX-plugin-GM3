@@ -29,10 +29,8 @@ There you go!
 ## Bugs 
 <em>Fr : </em>
 
-- Les macros ne sont pas toutes à côté de là où on a entré le premier numéro
 - Le plugin crée étape par étape plutôt que tout à la fin
 
 <em>En : </em>
 
-- The macros are not all next to where we entered the first number
 - The plugin creates step by step rather than everything at the end

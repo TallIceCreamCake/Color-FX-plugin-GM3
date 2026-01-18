@@ -12,7 +12,21 @@ Prérequis : avoir des presets de couleurs, comme avec un color picker
 
 Et voilà !
 
-## Les bugs connues 
+Prerequisites: have color presets, as with a color picker
+
+1. Import and launch the plugin in Grandma 3
+2. Select the groups by entering them in the field, the accepted formats are: either one at a time, or 1 + 2 + 3... or 1 Thru 3 (or thru) once finished, leave done then press enter
+3. Select the color presets in the same way as you want in your little color picker of the color FX
+4. Enter the layout number you want to use 
+5. Enter the number of the first macro
+
+There you go!
+
+## Bugs 
 - Les formes ne fonctionnent pas
 - Les macros ne sont pas toutes à côté de là où on a entré le premier numéro
 - Le plugin crée étape par étape plutôt que tout à la fin
+
+- The shapes don’t work
+- The macros are not all next to where we entered the first number
+- The plugin creates step by step rather than everything at the end

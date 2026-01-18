@@ -2,6 +2,8 @@
 ![Photo](https://images2.imgbox.com/24/07/2FTqH7Ks_o.png)
 
 ## How to use
+<em>Fr :</em>
+
 Prérequis : avoir des presets de couleurs, comme avec un color picker
 
 1. Importer et lancer le plugin dans Grandma 3
@@ -11,6 +13,8 @@ Prérequis : avoir des presets de couleurs, comme avec un color picker
 5. Entrez le numéro de la première macro
 
 Et voilà !
+
+<em>En :</em>
 
 Prerequisites: have color presets, as with a color picker
 
@@ -23,9 +27,13 @@ Prerequisites: have color presets, as with a color picker
 There you go!
 
 ## Bugs 
+<em>Fr : </em>
+
 - Les formes ne fonctionnent pas
 - Les macros ne sont pas toutes à côté de là où on a entré le premier numéro
 - Le plugin crée étape par étape plutôt que tout à la fin
+
+<em>En : </em>
 
 - The shapes don’t work
 - The macros are not all next to where we entered the first number

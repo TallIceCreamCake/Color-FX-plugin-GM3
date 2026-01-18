@@ -372,7 +372,7 @@ local function createColorFXPreset(groups, lowfxPresetNum, highfxPresetNum, DP)
 end
 
 -- ------------------------------------------------------------
---  Create Sequence 
+--  Create Sequence
 -- ------------------------------------------------------------
 local function createSequence(groups, colorFXPresetNum, DP)
     local seqNum = getFirstFreeSequence(DP)
@@ -425,7 +425,7 @@ local function createMatricks(sequenceNum, DP)
 end
 
 -- ------------------------------------------------------------
--- Macro start number 
+-- Macro start number
 -- ------------------------------------------------------------
 local function getMacroStartNumber()
     local userInput = ti("Entrez le numéro de la première Macro COULEUR (LOW/HIGH) à créer:", "1")
@@ -486,36 +486,117 @@ local function createColorMacros(presets, firstMacro, firstColorAppearance, lowf
 end
 
 -- ------------------------------------------------------------
--- Create FORMS presets (Buggy...)
+-- FORM SHAPING 
 -- ------------------------------------------------------------
-local function createFormPresets(DP)
-    local phaserPool = ShowData().DataPools[DP].PresetPools[21]
-
-    local firstTarget = getFirstFreePoolNum(4, phaserPool)
-    local tempStart = getFirstFreePoolNum(111, phaserPool)
-
-    c('Import Preset 21.' .. tempStart .. ' /File "predefined_phaser.xml" /nu')
-
-    local sin_src     = tempStart + 0
-    local snapin_src  = tempStart + 1
-    local snapout_src = tempStart + 2
-    local pwm_src     = tempStart + 3
-
-    c('Copy Preset 21.' .. sin_src .. ' + ' .. snapin_src .. ' + ' .. snapout_src .. ' + ' .. pwm_src .. ' At Preset 21.' .. (tempStart + 107) .. ' /nu')
-    c('Delete Preset 21.' .. tempStart .. ' Thru ' .. (tempStart + 106) .. ' /nc /nu')
-    c('Move Preset 21.' .. (tempStart + 107) .. ' Thru ' .. (tempStart + 110) .. ' At Preset 21.' .. firstTarget .. ' /nu')
-
-    phaserPool[firstTarget + 0]:Set('name', 'COLORFX_sin')
-    phaserPool[firstTarget + 1]:Set('name', 'COLORFX_snapin')
-    phaserPool[firstTarget + 2]:Set('name', 'COLORFX_snapout')
-    phaserPool[firstTarget + 3]:Set('name', 'COLORFX_pwm')
-
-    return firstTarget, {
-        sine    = phaserPool[firstTarget + 0].name,
-        snapin  = phaserPool[firstTarget + 1].name,
-        snapout = phaserPool[firstTarget + 2].name,
-        pwm     = phaserPool[firstTarget + 3].name
+local function applySquareToColorFXPreset(presetNum)
+    local attrCandidates = {
+        "ColorRGB_Red", "ColorRGB_Green", "ColorRGB_Blue",
+        "ColorRGB_R", "ColorRGB_G", "ColorRGB_B"
     }
+
+    c('Edit Preset 4.' .. presetNum .. ' /nu')
+
+    for step = 1, 2 do
+        c('Step ' .. step .. ' /nu')
+        for _, a in ipairs(attrCandidates) do
+            c('Attribute "' .. a .. '" At Transition 0 /nu')
+            c('Attribute "' .. a .. '" At Width 50 /nu')
+            c('Attribute "' .. a .. '" At Acceleration 0 /nu')
+            c('Attribute "' .. a .. '" At Deceleration 0 /nu')
+        end
+    end
+
+    c('Store Preset 4.' .. presetNum .. ' /o /nu')
+    c('ClearAll /nu')
+end
+
+local function applySnapInToColorFXPreset(presetNum)
+    local attrCandidates = {
+        "ColorRGB_Red", "ColorRGB_Green", "ColorRGB_Blue",
+        "ColorRGB_R", "ColorRGB_G", "ColorRGB_B"
+    }
+
+    c('Edit Preset 4.' .. presetNum .. ' /nu')
+
+    c('Step 1 /nu')
+    for _, a in ipairs(attrCandidates) do
+        c('Attribute "' .. a .. '" At Transition 0 /nu')
+        c('Attribute "' .. a .. '" At Width 50 /nu')
+        c('Attribute "' .. a .. '" At Acceleration 0 /nu')
+        c('Attribute "' .. a .. '" At Deceleration 0 /nu')
+    end
+
+    c('Step 2 /nu')
+    for _, a in ipairs(attrCandidates) do
+        c('Attribute "' .. a .. '" At Transition 100 /nu')
+        c('Attribute "' .. a .. '" At Width 50 /nu')
+        c('Attribute "' .. a .. '" At Acceleration 0 /nu')
+        c('Attribute "' .. a .. '" At Deceleration 0 /nu')
+    end
+
+    c('Store Preset 4.' .. presetNum .. ' /o /nu')
+    c('ClearAll /nu')
+end
+
+local function applySnapOutToColorFXPreset(presetNum)
+    local attrCandidates = {
+        "ColorRGB_Red", "ColorRGB_Green", "ColorRGB_Blue",
+        "ColorRGB_R", "ColorRGB_G", "ColorRGB_B"
+    }
+
+    c('Edit Preset 4.' .. presetNum .. ' /nu')
+
+    c('Step 1 /nu')
+    for _, a in ipairs(attrCandidates) do
+        c('Attribute "' .. a .. '" At Transition 100 /nu')
+        c('Attribute "' .. a .. '" At Width 50 /nu')
+        c('Attribute "' .. a .. '" At Acceleration 0 /nu')
+        c('Attribute "' .. a .. '" At Deceleration 0 /nu')
+    end
+
+    c('Step 2 /nu')
+    for _, a in ipairs(attrCandidates) do
+        c('Attribute "' .. a .. '" At Transition 0 /nu')
+        c('Attribute "' .. a .. '" At Width 50 /nu')
+        c('Attribute "' .. a .. '" At Acceleration 0 /nu')
+        c('Attribute "' .. a .. '" At Deceleration 0 /nu')
+    end
+
+    c('Store Preset 4.' .. presetNum .. ' /o /nu')
+    c('ClearAll /nu')
+end
+
+-- ------------------------------------------------------------
+-- Create 4 FORM TEMPLATE presets (Pool 4) from the FIXED preset
+-- ------------------------------------------------------------
+local function createFormTemplatesFromFixed(fixedPresetNum, DP)
+    local pPool = ShowData().DataPools[DP].PresetPools[4]
+    local firstTarget = getFirstFreePoolNum(4, pPool)
+
+    local templates = {
+        sine    = firstTarget + 0,
+        snapin  = firstTarget + 1,
+        snapout = firstTarget + 2,
+        pwm     = firstTarget + 3
+    }
+
+    c('Copy Preset 4.' .. fixedPresetNum .. ' At 4.' .. templates.sine .. ' /o /nu')
+    pPool[templates.sine]:Set('name', 'COLORFX_FORM_SINE')
+
+    c('Copy Preset 4.' .. fixedPresetNum .. ' At 4.' .. templates.snapin .. ' /o /nu')
+    pPool[templates.snapin]:Set('name', 'COLORFX_FORM_SNAPIN')
+
+    c('Copy Preset 4.' .. fixedPresetNum .. ' At 4.' .. templates.snapout .. ' /o /nu')
+    pPool[templates.snapout]:Set('name', 'COLORFX_FORM_SNAPOUT')
+
+    c('Copy Preset 4.' .. fixedPresetNum .. ' At 4.' .. templates.pwm .. ' /o /nu')
+    pPool[templates.pwm]:Set('name', 'COLORFX_FORM_SQUARE')
+
+    applySnapInToColorFXPreset(templates.snapin)
+    applySnapOutToColorFXPreset(templates.snapout)
+    applySquareToColorFXPreset(templates.pwm)
+
+    return templates
 end
 
 -- ------------------------------------------------------------
@@ -665,7 +746,6 @@ end
 ]]
         lua_command = lua_command:gsub("\r", "")
         lua_command = lua_command:gsub('\n%s+',' ')
-
         macro_pool[m][1]:Set('command', lua_command)
     end
 
@@ -673,9 +753,10 @@ end
 end
 
 -- ------------------------------------------------------------
--- Create CONTROL macros (FORMS / ORDER / MIRROR / PHASE / XGROUP / XBLOCK / XFADE)
+-- Create CONTROL macros
+--   ✅ Form buttons = Copy template -> fixed preset (/o)
 -- ------------------------------------------------------------
-local function createControlMacros(matricksName, sequenceNum, controlAppearFirst, formNames, firstMacro, DP)
+local function createControlMacros(matricksName, sequenceNum, controlAppearFirst, formTemplates, fixedColorFXPresetNum, firstMacro, DP)
     local macro_pool  = ShowData().DataPools[DP].Macros
     local appearances = ShowData().Appearances
 
@@ -765,20 +846,22 @@ local function createControlMacros(matricksName, sequenceNum, controlAppearFirst
         'Assign Appearance "' .. ap(AP_SNAPOUT_I) .. '" At Macro "COLOR FX - snapout"; ' ..
         'Assign Appearance "' .. ap(AP_PWM_I)     .. '" At Macro "COLOR FX - pwm"'
 
-    local function makeForm(label, presetName, apA, apI)
+    local function makeForm(label, templatePresetNum, apA, apI)
         storeMacro(m, "COLOR FX - " .. label, ap(apI))
         storeLines(m, 1, 3)
-        setLine(m, 1, "Assign Preset 21.'" .. presetName .. "' At Sequence '" .. sequenceNum .. "' Cue 1 Part 0.*")
+        setLine(m, 1, 'Copy Preset 4.' .. templatePresetNum .. ' At 4.' .. fixedColorFXPresetNum .. ' /o /nu')
         setLine(m, 2, resetForms)
         setLine(m, 3, 'Assign Appearance "' .. ap(apA) .. '" At Macro "COLOR FX - ' .. label .. '"')
         m = m + 1
     end
 
-    makeForm("sine",    formNames.sine,    AP_SINE_A,   AP_SINE_I)
-    makeForm("snapin",  formNames.snapin,  AP_SNAPIN_A, AP_SNAPIN_I)
-    makeForm("snapout", formNames.snapout, AP_SNAPOUT_A,AP_SNAPOUT_I)
-    makeForm("pwm",     formNames.pwm,     AP_PWM_A,    AP_PWM_I)
+    -- Forms (4)
+    makeForm("sine",    formTemplates.sine,    AP_SINE_A,    AP_SINE_I)
+    makeForm("snapin",  formTemplates.snapin,  AP_SNAPIN_A,  AP_SNAPIN_I)
+    makeForm("snapout", formTemplates.snapout, AP_SNAPOUT_A, AP_SNAPOUT_I) -- ✅ Snap Out
+    makeForm("pwm",     formTemplates.pwm,     AP_PWM_A,     AP_PWM_I)
 
+    -- Order / Shuffle
     storeMacro(m, "COLOR FX - in_order", ap(AP_INORDER_I))
     storeLines(m, 1, 3)
     setLine(m, 1,
@@ -802,6 +885,7 @@ local function createControlMacros(matricksName, sequenceNum, controlAppearFirst
     setLine(m, 3, '')
     m = m + 1
 
+    -- Direction
     storeMacro(m, "COLOR FX - mirrored", ap(AP_MIR_I))
     storeLines(m, 1, 3)
     setLine(m, 1, 'Set MAtricks "' .. matricksName .. '" "xwings" 2; Set MAtricks "' .. matricksName .. '" "phasertransform" "Mirror"')
@@ -822,6 +906,7 @@ local function createControlMacros(matricksName, sequenceNum, controlAppearFirst
     setLine(m, 3, '')
     m = m + 1
 
+    -- xphase_invert (lua, 1 ligne flatten)
     storeMacro(m, "COLOR FX - xphase_invert", ap(AP_PINV_I))
     c('Store Macro ' .. m .. '.1 /o /nu')
 
@@ -854,6 +939,7 @@ end
     macro_pool[m][1]:Set('command', luaInvert)
     m = m + 1
 
+    -- Phase buttons
     local resetPhase =
         'Assign Appearance "' .. ap(AP_P0_I)   .. '" At Macro "COLOR FX - xphase_0"; ' ..
         'Assign Appearance "' .. ap(AP_P90_I)  .. '" At Macro "COLOR FX - xphase_90"; ' ..
@@ -874,6 +960,7 @@ end
     makePhase(180, "xphase_180", AP_P180_A, AP_P180_I)
     makePhase(360, "xphase_360", AP_P360_A, AP_P360_I)
 
+    -- xgroup
     local resetXGroup =
         'Assign Appearance "' .. ap(AP_XG0_I)   .. '" At Macro "COLOR FX - xgroup_0"; ' ..
         'Assign Appearance "' .. ap(AP_XG2_I)   .. '" At Macro "COLOR FX - xgroup_2"; ' ..
@@ -896,6 +983,7 @@ end
     makeXGroup(4,    "xgroup_4",      AP_XG4_A,  AP_XG4_I)
     makeXGroup("()", "xgroup_input",  AP_XGIN_A, AP_XGIN_I)
 
+    -- xblock
     local resetXBlock =
         'Assign Appearance "' .. ap(AP_XB0_I)   .. '" At Macro "COLOR FX - xblock_0"; ' ..
         'Assign Appearance "' .. ap(AP_XB2_I)   .. '" At Macro "COLOR FX - xblock_2"; ' ..
@@ -918,6 +1006,7 @@ end
     makeXBlock(4,    "xblock_4",      AP_XB4_A,  AP_XB4_I)
     makeXBlock("()", "xblock_input",  AP_XBIN_A, AP_XBIN_I)
 
+    -- xfade
     local resetXFade =
         'Assign Appearance "' .. ap(AP_XF0_I)   .. '" At Macro "COLOR FX - xfade_0"; ' ..
         'Assign Appearance "' .. ap(AP_XF1_I)   .. '" At Macro "COLOR FX - xfade_1"; ' ..
@@ -1233,17 +1322,17 @@ function Main()
     local sequenceNum = createSequence(groups, colorFXPresetNum, DP)
     local matricksNum, matricksName = createMatricks(sequenceNum, DP)
 
-    local formPresetFirst, formNames = createFormPresets(DP)
     local controlApFirst, controlApLast = createControlAppearances(DP)
-
     configureSequenceAsSwitch(sequenceNum, controlApFirst, DP)
+
+    local formTemplates = createFormTemplatesFromFixed(colorFXPresetNum, DP)
 
     local firstMacroAuto = getFirstFreeMacro(DP)
     local groupMacroFirst, groupMacroLast, nextMacro =
         createGroupMacros(groups, sequenceNum, firstMacroAuto, controlApFirst, DP)
 
     local controlMacroFirst, controlMacroLast =
-        createControlMacros(matricksName, sequenceNum, controlApFirst, formNames, nextMacro, DP)
+        createControlMacros(matricksName, sequenceNum, controlApFirst, formTemplates, colorFXPresetNum, nextMacro, DP)
 
     local colorMacroFirst = getMacroStartNumber()
     if not colorMacroFirst then
@@ -1264,7 +1353,7 @@ function Main()
 
     MessageBox({
         title = pluginName,
-        message = "OK.\n\n- FIX xphase_invert (Cmd quotes)\n",
+        message = "OK.\n\n- Forms via templates (Copy preset -> fixed /o)\n- Square + SnapIn + SnapOut appliqués\n",
         commands = {{value=1,name="OK"}}
     })
 end

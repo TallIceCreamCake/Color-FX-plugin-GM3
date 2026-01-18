@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GMA3 DataVersion="1.9.3.3">
+    <UserPlugin Name="Color FX Builder" Guid="D2 4B A1 9F 3C 55 11 02 8E 7A 2F 9D 3C 8E 01 01" Version="1.0.0.0">
+        <ComponentLua
+            Name="ColorFX_Main"
+            Guid="A7 2F 88 4C 6D 21 10 02 B9 44 2E 5C 8A 77 11 02"
+            FileName="color_fx.lua"
+            FilePath="/ColorFX" />
+    </UserPlugin>
+</GMA3>
